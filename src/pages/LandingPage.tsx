@@ -55,7 +55,7 @@ export default function LandingPage() {
             Finding Friends
           </span>
 
-          {/* 3D Effect Layers */}
+
           <span
             className="absolute inset-0 z-0"
             style={{
@@ -71,14 +71,12 @@ export default function LandingPage() {
           </span>
         </motion.h1>
 
-        {/* Subtitle */}
         <p className="text-2xl text-gray-400 font-bold">
           Connect With People Instantly And Chat With Multiple Users In Real time
         </p>
 
-        {/* Start Chatting Button */}
         <a
-          href="/chat"
+          href="/HomePage"
           className="relative px-12 py-6 text-white font-semibold bg-gradient-to-r from-blue-500 to-purple-600 rounded-full shadow-2xl hover:scale-110 transform transition-all duration-300 ease-in-out group"
         >
           <span className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 blur-lg opacity-50 group-hover:opacity-100 transition-opacity duration-300"></span>
@@ -91,7 +89,7 @@ export default function LandingPage() {
         </a>
 
         {/* Cards Section */}
-        <div className="mt-32 relative w-full max-w-4xl overflow-hidden hidden lg:block">
+        <div className="mt-28 relative w-full max-w-4xl overflow-hidden hidden lg:block">
           <div
             className="flex animate-scroll"
             style={{
