@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 
 const HomePage: React.FC = () => {
   const [userName, setUserName] = useState<string>(''); // Store the user's name
@@ -17,7 +18,45 @@ const HomePage: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false); // Modal open state
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const [micVolume, setMicVolume] = useState<number>(1); // Default mic volume at 100%
+  const [isMicChecked, setIsMicChecked] = useState<boolean>(false); // State for mic check toggle
+  const audioContextRef = useRef<AudioContext | null>(null); // Store the audio context to manage cleanup
+  
+  useEffect(() => {
+    if (isMicChecked && userVideo) {
+      // Only create a new AudioContext if it's not already created
+      if (!audioContextRef.current) {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const analyser = audioContext.createAnalyser();
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = micVolume; // Set initial mic volume
+  
+        const source = audioContext.createMediaStreamSource(userVideo);
+        source.connect(analyser);
+        analyser.connect(gainNode);
+        gainNode.connect(audioContext.destination); // Output to speakers
+  
+        audioContextRef.current = audioContext; // Store the reference to the audio context
+      }
+    } else {
+      // Cleanup if mic feedback is disabled
+      if (audioContextRef.current) {
+        audioContextRef.current.close(); // Close the audio context when mic check is disabled
+        audioContextRef.current = null; // Clear the reference
+      }
+    }
+  
+    // Cleanup on component unmount or if the mic check status changes
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+    };
+  }, [userVideo, isMicChecked, micVolume]);
+  
+  
 
   useEffect(() => {
     const getDevices = async () => {
@@ -29,10 +68,10 @@ const HomePage: React.FC = () => {
         setAudioDevices(audioDevices);
 
         if (videoDevices.length > 0) {
-          setSelectedVideoDevice(videoDevices[0].deviceId); // Select first video device by default
+          setSelectedVideoDevice(videoDevices[0].deviceId); 
         }
         if (audioDevices.length > 0) {
-          setSelectedAudioDevice(audioDevices[0].deviceId); // Select first audio device by default
+          setSelectedAudioDevice(audioDevices[0].deviceId); 
         }
       } catch (err) {
         console.error('Error enumerating devices:', err);
@@ -42,7 +81,7 @@ const HomePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Request camera and microphone access when the component mounts or when device selection changes
+
     const getMedia = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -122,9 +161,9 @@ const HomePage: React.FC = () => {
     if (userVideo) {
       const audioTracks = userVideo.getAudioTracks();
       audioTracks.forEach((track) => {
-        track.enabled = !track.enabled; // Toggle the enabled state of the audio tracks
+        track.enabled = !track.enabled; 
       });
-      setIsMuted((prev) => !prev); // Update the mute state
+      setIsMuted((prev) => !prev); 
     }
   };
 
@@ -150,25 +189,54 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-black text-white overflow-hidden">
-      {!isNameEntered ? (
-        <div className="flex flex-col items-center justify-center p-10 space-y-8 absolute inset-0 z-10 bg-black bg-opacity-70">
-          <h1 className="text-4xl font-bold text-white mb-6">What is your name?</h1>
-          <form onSubmit={handleNameSubmit} className="flex flex-col items-center space-y-4">
-            <input
-              type="text"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              placeholder="Enter your name"
-              className="px-6 py-3 text-lg bg-gray-700 text-white rounded-full placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-500"
+    {!isNameEntered ? (
+        <motion.div
+        className="flex flex-col items-center justify-center p-8 sm:p-12 space-y-8 absolute inset-0 z-10 bg-black bg-opacity-70"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        >
+        <motion.h1
+            className="text-4xl sm:text-5xl font-bold text-white mb-6"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
+            What is your name?
+        </motion.h1>
+        <form onSubmit={handleNameSubmit} className="flex flex-col items-center space-y-4">
+            <motion.input
+            type="text"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder="Enter your name"
+            className="px-6 py-3 text-lg sm:text-xl bg-gray-700 text-white rounded-full placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-96"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
             />
-            <button
-              type="submit"
-              className="px-8 py-4 text-lg font-semibold text-black bg-white rounded-full hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
+            <motion.button
+            type="submit"
+            className="px-8 py-4 text-lg sm:text-xl font-semibold text-black bg-white rounded-full hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-300"
+            whileHover={{
+                scale: 1.1, // Scale up slightly more on hover
+                boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.2)', // Add a bigger shadow on hover
+            }}
+            whileTap={{
+                scale: 0.98, // Slightly shrink on click
+                boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)', // Less intense shadow when clicked
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
             >
-              Confirm
-            </button>
-          </form>
-        </div>
+            Confirm
+            </motion.button>
+
+        </form>
+        </motion.div>
+
+
       ) : (
         <div className="flex flex-col items-center justify-center p-10 space-y-12">
           <h1 className="text-6xl font-extrabold text-center tracking-widest text-white drop-shadow-2xl">
@@ -244,65 +312,166 @@ const HomePage: React.FC = () => {
 
         {/* Settings Modal */}
         {isSettingsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex justify-center items-center">
-            <div className="bg-gray-800 p-8 rounded-lg w-96 shadow-lg">
-            <h2 className="text-xl font-semibold text-white mb-4">Settings</h2>
-            
-            {/* Change Username Section */}
-            <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-300">Change Username</label>
-                <input
-                type="text"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)} // Update the userName state
-                className="w-full p-2 mt-2 bg-gray-700 text-white border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-            </div>
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex justify-center items-center">
+        <div className="bg-gray-800 p-8 rounded-lg w-96 shadow-lg">
+        <h2 className="text-xl font-semibold text-white mb-4">Settings</h2>
 
-            {/* Video Device Selection */}
-            <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-300">Select Camera</label>
-                <select
-                value={selectedVideoDevice}
-                onChange={(e) => setSelectedVideoDevice(e.target.value)}
-                className="w-full p-2 mt-2 bg-gray-700 text-white border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                {videoDevices.map((device) => (
-                    <option key={device.deviceId} value={device.deviceId}>
-                    {device.label || `Camera ${device.deviceId}`}
-                    </option>
-                ))}
-                </select>
-            </div>
-
-            {/* Audio Device Selection */}
-            <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-300">Select Microphone</label>
-                <select
-                value={selectedAudioDevice}
-                onChange={(e) => setSelectedAudioDevice(e.target.value)}
-                className="w-full p-2 mt-2 bg-gray-700 text-white border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                {audioDevices.map((device) => (
-                    <option key={device.deviceId} value={device.deviceId}>
-                    {device.label || `Microphone ${device.deviceId}`}
-                    </option>
-                ))}
-                </select>
-            </div>
-
-            {/* Close Button */}
-            <div className="flex justify-end mt-4">
-                <button
-                onClick={closeSettingsModal}
-                className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600 transition-all"
-                >
-                Close
-                </button>
-            </div>
-            </div>
+        {/* Mic Check Section */}
+        <div className="mb-4 flex items-center">
+            <input
+            type="checkbox"
+            checked={isMicChecked}
+            onChange={() => setIsMicChecked(prev => !prev)}
+            className="mr-2"
+            />
+            <label className="text-sm font-semibold text-gray-300">Enable Mic Check</label>
         </div>
+
+        {/* Mic Volume Section */}
+        {isMicChecked && (
+            <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-300">Adjust Mic Volume</label>
+            <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                value={micVolume}
+                onChange={(e) => setMicVolume(parseFloat(e.target.value))}
+                className="w-full mt-2"
+            />
+            <div className="flex justify-between text-sm text-gray-400">
+                <span>0%</span>
+                <span>100%</span>
+            </div>
+            </div>
         )}
+
+        {/* Video Device Selection */}
+        <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-300">Select Camera</label>
+            <select
+            value={selectedVideoDevice}
+            onChange={(e) => setSelectedVideoDevice(e.target.value)}
+            className="w-full p-2 mt-2 bg-gray-700 text-white border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+            {videoDevices.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                {device.label || `Camera ${device.deviceId}`}
+                </option>
+            ))}
+            </select>
+        </div>
+
+        {/* Audio Device Selection */}
+        <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-300">Select Microphone</label>
+            <select
+            value={selectedAudioDevice}
+            onChange={(e) => setSelectedAudioDevice(e.target.value)}
+            className="w-full p-2 mt-2 bg-gray-700 text-white border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+            {audioDevices.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                {device.label || `Microphone ${device.deviceId}`}
+                </option>
+            ))}
+            </select>
+        </div>
+
+        {/* Close Button */}
+        <div className="flex justify-end mt-4">
+            <button
+            onClick={closeSettingsModal}
+            className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600 transition-all"
+            >
+            Close
+            </button>
+        </div>
+        </div>
+    </div>
+    )}
+    {isSettingsModalOpen && (
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex justify-center items-center">
+        <div className="bg-gray-800 p-8 rounded-lg w-96 shadow-lg">
+        <h2 className="text-xl font-semibold text-white mb-4">Settings</h2>
+
+        {/* Mic Check Section */}
+        <div className="mb-4 flex items-center">
+            <input
+            type="checkbox"
+            checked={isMicChecked}
+            onChange={() => setIsMicChecked(prev => !prev)}
+            className="mr-2"
+            />
+            <label className="text-sm font-semibold text-gray-300">Enable Mic Check</label>
+        </div>
+
+        {/* Mic Volume Section */}
+        {isMicChecked && (
+            <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-300">Adjust Mic Volume</label>
+            <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.01"
+                value={micVolume}
+                onChange={(e) => setMicVolume(parseFloat(e.target.value))}
+                className="w-full mt-2"
+            />
+            <div className="flex justify-between text-sm text-gray-400">
+                <span>0%</span>
+                <span>100%</span>
+            </div>
+            </div>
+        )}
+
+        {/* Video Device Selection */}
+        <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-300">Select Camera</label>
+            <select
+            value={selectedVideoDevice}
+            onChange={(e) => setSelectedVideoDevice(e.target.value)}
+            className="w-full p-2 mt-2 bg-gray-700 text-white border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+            {videoDevices.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                {device.label || `Camera ${device.deviceId}`}
+                </option>
+            ))}
+            </select>
+        </div>
+
+        {/* Audio Device Selection */}
+        <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-300">Select Microphone</label>
+            <select
+            value={selectedAudioDevice}
+            onChange={(e) => setSelectedAudioDevice(e.target.value)}
+            className="w-full p-2 mt-2 bg-gray-700 text-white border border-gray-500 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+            {audioDevices.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                {device.label || `Microphone ${device.deviceId}`}
+                </option>
+            ))}
+            </select>
+        </div>
+
+        {/* Close Button */}
+        <div className="flex justify-end mt-4">
+            <button
+            onClick={closeSettingsModal}
+            className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600 transition-all"
+            >
+            Close
+            </button>
+        </div>
+        </div>
+    </div>
+    )}
+
 
 
         <div className="flex gap-8 mb-6 flex-wrap justify-center">
