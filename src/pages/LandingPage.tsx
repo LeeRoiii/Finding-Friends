@@ -89,7 +89,7 @@ export default function LandingPage() {
         </a>
 
         {/* Cards Section */}
-        <div className="mt-28 relative w-full max-w-4xl overflow-hidden hidden lg:block">
+        <div className="mt-28 relative w-full mx-auto max-w-4xl overflow-hidden hidden lg:block">
           <div
             className="flex animate-scroll"
             style={{
